@@ -1,0 +1,13 @@
+# 보호 목록 — 이 목록과 목록 속 파일은 사람이 고친다. (install.sh --finalize 로 세팅 마지막에 설치)
+# 합격 기준 — 고쳐서 통과시키지 말 것
+tests/acceptance/*
+# 완료 판정 장치 — 검사를 빼는 것도 테스트 약화와 같다
+.harness/hooks/*
+.harness/checks.sh
+.harness/protected-paths.txt
+.harness/limits-baseline.txt
+.claude/settings.json
+.gemini/settings.json
+.codex/hooks.json
+# 이미 적용된 마이그레이션 (프로젝트에 맞게)
+# migrations/0001_*

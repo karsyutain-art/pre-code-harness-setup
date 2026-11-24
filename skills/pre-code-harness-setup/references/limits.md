@@ -1,0 +1,67 @@
+# 코드 크기 소프트/하드 리밋 — 재사용성을 구조로 강제
+
+AI는 기존 코드를 찾아 쓰기보다 그 자리에 새로 쓰는 쪽으로 기울고, 그 결과 파일과 함수가 계속 커진다. 큰 단위는 재사용하기 어렵다.
+**소프트 = 알림**(지금 고칠 기회를 주되 흐름을 끊지 않음), **하드 = 판정**(넘으면 완료할 수 없음).
+
+| 항목 | 소프트 (알림) | 하드 (완료 차단) | 거는 곳 |
+|---|---|---|---|
+| 파일 길이 | 300줄 | 500줄 | `code-limits.sh` (언어 무관) |
+| 함수 길이 | 40줄 | 80줄 | ESLint `max-lines-per-function` / Ruff는 문장 수 `PLR0915` (30 / 50) |
+| 매개변수 | 4 | 6 | ESLint `max-params` / Ruff `PLR0913` |
+| 중첩 깊이 | 3 | 4 | ESLint `max-depth` / Ruff는 분기 수 `PLR0912` (소프트 생략 / 15) |
+| 순환 복잡도 | 10 | 15 | ESLint `complexity` / Ruff `C901` |
+
+숫자는 출발점이다. 프로젝트 성격에 맞게 사용자와 조정하고, 정한 값은 DECISIONS.md에 기록한다. 파일 리밋 수치는 Hook 명령 앞에 환경 변수(`LIMIT_FILE_SOFT=400` 등)로 바꿀 수 있다. 생성 코드·마이그레이션·vendor·빌드 산출물은 대상에서 빠진다.
+
+## 하드 리밋 — 린터 설정에 error로
+
+린터 설정 파일 하나를 사용자 코딩 규칙(예: "린트 경고 0건")과 이 스킬이 **함께** 쓴다. 설정이 두 벌이면 한쪽은 통과하고 한쪽은 실패한다.
+- 프로젝트에 린터가 있으면 그 설정 파일에 아래 규칙을 추가한다.
+- 없는데 사용자 코딩 규칙이 린트를 요구하면(이미 합의된 것), 그 도구로 설정 파일을 만들어 여기에 건다.
+- 둘 다 아니면 린터 도입을 제안만 하고, 승인 전까지는 파일 길이 리밋만 쓴다.
+
+```js
+// eslint.config.js (기존 설정의 rules에 추가)
+rules: {
+  "max-lines-per-function": ["error", { max: 80, skipBlankLines: true, skipComments: true }],
+  "max-params": ["error", 6],
+  "max-depth": ["error", 4],
+  "complexity": ["error", 15],
+}
+```
+
+```toml
+# pyproject.toml
+[tool.ruff.lint]
+extend-select = ["C901", "PLR0912", "PLR0913", "PLR0915"]
+[tool.ruff.lint.mccabe]
+max-complexity = 15
+[tool.ruff.lint.pylint]
+max-args = 6
+max-branches = 15
+max-statements = 50
+```
+
+그리고 `.harness/checks.sh`에 린트 명령(`npm run lint`, `ruff check .`)을 넣는다.
+
+## 소프트 리밋 — code-limits.sh --hook
+
+파일을 고친 직후(PostToolUse/AfterTool) 그 파일만 본다. **이번 변경이 만든 초과만** 알린다.
+- 파일: 마지막 커밋보다 커졌을 때만.
+- 함수: 린터를 소프트 값으로 덮어써 현재 파일과 마지막 커밋 버전에 각각 돌린 뒤, 새로 생긴 경고만. 경고는 "규칙 + 해당 소스 줄"로 비교하므로 위에 줄이 추가돼 줄 번호가 밀려도 같은 경고로 본다.
+- ESLint(`node_modules/.bin/eslint`)·Ruff가 있을 때만 함수 단위 검사를 한다.
+
+원래 크던 파일을 한 줄 고칠 때마다 "나누라"고 하면 요청받지 않은 리팩터링을 부추기게 된다. 그래서 기존 코드는 탓하지 않는다.
+
+## 기존 코드가 있는 프로젝트 — 기준선(래칫)
+
+하드 리밋을 처음부터 전체에 걸면 이미 큰 파일 때문에 검사가 영원히 실패하고, 완료 게이트 루프가 상관없는 레거시를 고치느라 헛돈다. 도입 시점의 초과분은 기록해 두고 **"더 나빠지지만 않으면 통과"**로 시작한다.
+- 파일 길이: `install.sh --finalize`가 `.harness/limits-baseline.txt`에 기록 (기존 초과 파일은 그 줄 수를 넘지 못함)
+- ESLint: `npx eslint . --suppress-all` → 기존 위반을 suppressions 파일에 기록 (ESLint 9의 일괄 억제)
+- Ruff: `ruff check --add-noqa="리밋 도입 전 기존 코드(기준선)" .` → 이유가 붙은 noqa 주석 (diff가 커지므로 사용자에게 먼저 확인)
+
+기준선 파일은 보호 목록에 들어 있다. AI가 자기 파일을 기준선에 넣어 리밋을 피하지 못하게 하기 위해서다. 기준선 갱신은 사람이 한다.
+
+## 중복 탐지 (선택)
+
+재사용의 반대편은 복붙이다. 사용자가 원하면 `npx jscpd --threshold 5 src` 같은 중복률 하드 리밋을 checks.sh에 추가한다. 설치가 필요하므로 제안만 하고, 승인 후에 넣는다.

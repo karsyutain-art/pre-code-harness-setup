@@ -1,0 +1,22 @@
+{
+  "name": "pre-code-harness-setup",
+  "description": "코드를 쓰기 전에 하네스(매뉴얼·위험 명령/보호 파일 차단 Hook·코드 크기 리밋), 루프(완료 기준과 완료 게이트), 그래프(단계·사람 승인)를 프로젝트에 깔아 주는 스킬. Claude Code·Gemini CLI·Codex 공통.",
+  "version": "1.0.0",
+  "author": {
+    "name": "karsyutain-art",
+    "url": "https://github.com/karsyutain-art"
+  },
+  "homepage": "https://github.com/karsyutain-art/pre-code-harness-setup",
+  "repository": "https://github.com/karsyutain-art/pre-code-harness-setup",
+  "license": "MIT",
+  "keywords": [
+    "harness",
+    "hooks",
+    "agents-md",
+    "loop-engineering",
+    "graph-engineering",
+    "code-limits",
+    "vibe-coding",
+    "korean"
+  ]
+}

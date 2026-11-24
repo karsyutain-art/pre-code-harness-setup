@@ -1,0 +1,20 @@
+{
+  "name": "pre-code-harness",
+  "interface": {
+    "displayName": "Pre-code Harness"
+  },
+  "plugins": [
+    {
+      "name": "pre-code-harness-setup",
+      "source": {
+        "source": "url",
+        "url": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "BeforeTool": [
+      { "matcher": "run_shell_command", "hooks": [{ "name": "harness-guard-bash", "type": "command", "command": "bash \"${GEMINI_PROJECT_DIR:-$(git rev-parse --show-toplevel)}/.harness/hooks/guard-bash.sh\"" }] },
+      { "matcher": "write_file|replace", "hooks": [{ "name": "harness-guard-paths", "type": "command", "command": "bash \"${GEMINI_PROJECT_DIR:-$(git rev-parse --show-toplevel)}/.harness/hooks/guard-paths.sh\"" }] }
+    ],
+    "AfterTool": [
+      { "matcher": "write_file|replace", "hooks": [{ "name": "harness-code-limits", "type": "command", "command": "bash \"${GEMINI_PROJECT_DIR:-$(git rev-parse --show-toplevel)}/.harness/hooks/code-limits.sh\" --hook" }] }
+    ],
+    "SessionStart": [
+      { "hooks": [{ "name": "harness-session-brief", "type": "command", "command": "bash \"${GEMINI_PROJECT_DIR:-$(git rev-parse --show-toplevel)}/.harness/hooks/session-brief.sh\" --format gemini" }] }
+    ],
+    "AfterAgent": [
+      { "hooks": [{ "name": "harness-stop-gate", "type": "command", "command": "bash \"${GEMINI_PROJECT_DIR:-$(git rev-parse --show-toplevel)}/.harness/hooks/stop-gate.sh\"", "timeout": 900000 }] }
+    ]
+  }
+}
