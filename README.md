@@ -38,10 +38,15 @@ gemini extensions install https://github.com/karsyutain-art/pre-code-harness-set
 버전에 따라 Agent Skills와 Hook이 실험 기능이면 설정에서 켜야 합니다.
 
 ### Antigravity (앱·IDE·CLI)
-`gemini extensions install`은 Gemini CLI 전용이라 Antigravity에는 쓰지 않습니다. skills CLI로 프로젝트의 `.agents/skills/`에 설치하세요 — Antigravity가 읽는 위치입니다.
+`gemini extensions install`은 Gemini CLI 전용이라 Antigravity에는 쓰지 않습니다. 둘 중 하나를 쓰세요.
 ```bash
+# 1) Antigravity 플러그인으로 설치 (모든 워크스페이스, ~/.gemini/config/plugins/ 에 설치됨)
+agy plugin install https://github.com/karsyutain-art/pre-code-harness-setup
+
+# 2) skills CLI로 이 프로젝트에만 설치 (.agents/skills/)
 npx skills add karsyutain-art/pre-code-harness-setup -a antigravity
 ```
+플러그인은 스킬만 담고 있고, 플러그인 자체에는 Hook이 없습니다. Hook은 스킬이 하네스를 깔 때 **그 프로젝트에만** 설치됩니다 — 모든 프로젝트에서 테스트가 실행되는 일을 막기 위해서입니다.
 스킬이 하네스를 깔 때 `--tools antigravity`를 고르면 Hook 설정이 `.agents/hooks.json`의 `pre-code-harness` 그룹으로 들어갑니다. CLI는 `/hooks`, 앱·IDE는 Customizations > Hooks에서 확인할 수 있습니다.
 
 ### ChatGPT (웹·데스크톱)
@@ -93,6 +98,7 @@ bash skills/pre-code-harness-setup/scripts/install.sh --target . --finalize   # 
 An Agent Skill that sets up guardrails **before** an AI coding agent writes code: a shared `AGENTS.md` manual with session start/end routines, hooks that block irreversible commands and edits to protected files (acceptance tests, check scripts), soft/hard code-size limits, a completion gate that won't let the agent stop until `.harness/checks.sh` passes, and an optional staged workflow with human approval points. The same hook scripts work with Claude Code, Gemini CLI, Codex and Antigravity (exit-code and JSON-decision hook protocols); ChatGPT chat gets an apply-yourself bundle. Install with `npx skills add karsyutain-art/pre-code-harness-setup`.
 
 ## 변경 기록
+- 1.2.0 — Antigravity 플러그인 매니페스트(`.antigravity-plugin/plugin.json`) 추가: `agy plugin install` 지원
 - 1.1.0 — Antigravity 지원(`--tools antigravity`, `.agents/hooks.json`, JSON decision 방식 Hook, PreInvocation 알림)
 - 1.0.0 — 첫 공개: Claude Code·Gemini CLI·Codex·ChatGPT
 

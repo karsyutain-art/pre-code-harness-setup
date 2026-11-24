@@ -16,6 +16,7 @@
 | 세션 시작 브리핑 | `SessionStart` stdout | `SessionStart` JSON `hookSpecificOutput.additionalContext` | `SessionStart` stdout | `SessionStart` JSON `injectSteps[].systemMessage` |
 | Hook 시간 제한 단위 | 초 | 밀리초 (기본 60000) | 초 (기본 600) | 초 (기본 30) |
 | 프로젝트 경로 변수 | `$CLAUDE_PROJECT_DIR` | `$GEMINI_PROJECT_DIR` | 없음 → `git rev-parse --show-toplevel` | 없음 → `git rev-parse --show-toplevel`. 입력에 `cwd`가 없어 `args.Cwd`·`workspacePaths[0]` 사용 |
+| 스킬 설치 | 플러그인 마켓플레이스 / `npx skills add` | `gemini extensions install` / `npx skills add` | `codex plugin marketplace add` / `npx skills add` | `agy plugin install <GitHub 주소>` / `npx skills add -a antigravity` |
 | 처음 실행할 때 | `/hooks`로 확인 | `/hooks`로 확인. 버전에 따라 Hook·Skills를 설정에서 켜야 함 | 프로젝트 신뢰(trust) + `/hooks`에서 새 Hook 검토·신뢰. 안 하면 **실행되지 않는다** | CLI `/hooks`, 앱·IDE Customizations > Hooks |
 | 권한 차단 목록 | `permissions.deny` | `tools.exclude` 등 (이 스킬은 Hook으로 처리) | 승인·샌드박스 정책 (이 스킬은 Hook으로 처리) | 권한 정책 (이 스킬은 Hook으로 처리) |
 | 검수 에이전트 | `.claude/agents/reviewer.md` | 서브에이전트(미리보기 기능) 또는 `gemini -p "$(cat .harness/reviewer.md)"` | 서브에이전트 또는 `codex exec "$(cat .harness/reviewer.md)"` | 서브에이전트 또는 다른 도구의 비대화형 세션 |

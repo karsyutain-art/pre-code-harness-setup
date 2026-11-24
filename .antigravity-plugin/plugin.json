@@ -1,0 +1,29 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "pre-code-harness-setup",
+  "displayName": "Pre-code Harness Setup",
+  "version": "1.2.0",
+  "description": "코드를 쓰기 전에 하네스(매뉴얼·위험 명령/보호 파일 차단 Hook·코드 크기 리밋), 루프(완료 기준과 완료 게이트), 그래프(단계·사람 승인)를 프로젝트에 깔아 주는 스킬. Claude Code·Gemini CLI·Codex·Antigravity 공통.",
+  "author": {
+    "name": "karsyutain-art",
+    "url": "https://github.com/karsyutain-art"
+  },
+  "homepage": "https://github.com/karsyutain-art/pre-code-harness-setup",
+  "repository": "https://github.com/karsyutain-art/pre-code-harness-setup",
+  "license": "MIT",
+  "keywords": [
+    "harness",
+    "hooks",
+    "agents-md",
+    "loop-engineering",
+    "graph-engineering",
+    "code-limits",
+    "antigravity"
+  ],
+  "skills": "./skills/",
+  "suggestedPrompts": [
+    "이 프로젝트에 코딩 전 하네스를 세팅해줘",
+    "새 기능 개발 전에 Hook이랑 완료 기준부터 깔아줘",
+    "AI가 테스트를 고쳐서 통과시키지 못하게 막아줘"
+  ]
+}

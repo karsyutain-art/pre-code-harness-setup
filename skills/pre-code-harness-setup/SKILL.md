@@ -4,7 +4,7 @@ description: 코드를 쓰기 전에 하네스(AGENTS.md 출근·퇴근 절차, 
 license: MIT
 compatibility: bash, git, jq가 필요하다. Hook 자동 설치는 Claude Code·Gemini CLI·Codex·Antigravity를 지원하고, 저장소에 직접 접근할 수 없는 채팅(ChatGPT 웹 등)에서는 적용용 파일 묶음을 만든다.
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
   author: karsyutain-art
 ---
 
