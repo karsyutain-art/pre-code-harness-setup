@@ -2,7 +2,7 @@
 
 [![skills.sh](https://skills.sh/b/karsyutain-art/pre-code-harness-setup)](https://skills.sh/karsyutain-art/pre-code-harness-setup)
 
-AI 코딩 에이전트가 **코드를 쓰기 전에** 프로젝트에 세 가지 장치를 깔아 주는 Agent Skill입니다. Claude Code, Gemini CLI, Codex, ChatGPT에서 씁니다.
+AI 코딩 에이전트가 **코드를 쓰기 전에** 프로젝트에 세 가지 장치를 깔아 주는 Agent Skill입니다. Claude Code, Gemini CLI, Codex, Antigravity, ChatGPT에서 씁니다.
 
 - **하네스** — 규칙을 알려주기만 하는 게 아니라 Hook으로 지키게 만듭니다
   - 공통 매뉴얼(AGENTS.md)에 출근·퇴근 절차를 넣고, PROGRESS.md·DECISIONS.md로 세션 사이에 맥락을 넘깁니다
@@ -16,7 +16,7 @@ AI 코딩 에이전트가 **코드를 쓰기 전에** 프로젝트에 세 가지
 ### 모든 에이전트 공통 (skills CLI)
 ```bash
 npx skills add karsyutain-art/pre-code-harness-setup
-# 특정 에이전트만: -a claude-code / -a codex / -a gemini-cli
+# 특정 에이전트만: -a claude-code / -a codex / -a gemini-cli / -a antigravity
 ```
 
 ### Claude Code
@@ -37,6 +37,13 @@ gemini extensions install https://github.com/karsyutain-art/pre-code-harness-set
 ```
 버전에 따라 Agent Skills와 Hook이 실험 기능이면 설정에서 켜야 합니다.
 
+### Antigravity (앱·IDE·CLI)
+`gemini extensions install`은 Gemini CLI 전용이라 Antigravity에는 쓰지 않습니다. skills CLI로 프로젝트의 `.agents/skills/`에 설치하세요 — Antigravity가 읽는 위치입니다.
+```bash
+npx skills add karsyutain-art/pre-code-harness-setup -a antigravity
+```
+스킬이 하네스를 깔 때 `--tools antigravity`를 고르면 Hook 설정이 `.agents/hooks.json`의 `pre-code-harness` 그룹으로 들어갑니다. CLI는 `/hooks`, 앱·IDE는 Customizations > Hooks에서 확인할 수 있습니다.
+
 ### ChatGPT (웹·데스크톱)
 [`dist/pre-code-harness-setup.zip`](https://github.com/karsyutain-art/pre-code-harness-setup/raw/main/dist/pre-code-harness-setup.zip)을 받아 ChatGPT의 스킬 화면에서 업로드합니다. 채팅의 ChatGPT는 사용자 저장소에 직접 쓸 수 없으므로, 진단 결과로 채운 **적용용 파일 묶음(zip)**을 만들어 줍니다. 저장소에서 안내된 `install.sh` 명령을 실행하면 적용됩니다.
 
@@ -51,13 +58,13 @@ gemini extensions install https://github.com/karsyutain-art/pre-code-harness-set
 AGENTS.md (+ CLAUDE.md / GEMINI.md → @AGENTS.md)   PROGRESS.md   DECISIONS.md
 .harness/hooks/     위험 명령·보호 파일 차단, 코드 크기 리밋, 완료 게이트, 출근 브리핑
 .harness/checks.sh  완료 기준의 단일 출처
-.claude/settings.json · .gemini/settings.json · .codex/hooks.json   (기존 설정에 병합)
+.claude/settings.json · .gemini/settings.json · .codex/hooks.json · .agents/hooks.json   (기존 설정에 병합)
 ```
 
 설치 스크립트를 직접 쓸 수도 있습니다.
 ```bash
 bash skills/pre-code-harness-setup/scripts/selftest.sh                       # 이 컴퓨터에서 동작 확인
-bash skills/pre-code-harness-setup/scripts/install.sh --target . --tools claude,gemini,codex
+bash skills/pre-code-harness-setup/scripts/install.sh --target . --tools claude,gemini,codex,antigravity
 # checks.sh·AGENTS.md를 채운 뒤
 bash skills/pre-code-harness-setup/scripts/install.sh --target . --finalize   # 보호 목록·기준선
 ```
@@ -70,18 +77,24 @@ bash skills/pre-code-harness-setup/scripts/install.sh --target . --finalize   # 
 
 ## 도구별 Hook 대응
 
-| | Claude Code | Gemini CLI | Codex |
-|---|---|---|---|
-| 실행 전 차단 | PreToolUse | BeforeTool | PreToolUse |
-| 수정 후 알림 | PostToolUse | AfterTool | PostToolUse |
-| 완료 게이트 | Stop | AfterAgent | Stop |
-| 파일 경로 | `tool_input.file_path` | `tool_input.file_path` | `apply_patch` 패치 텍스트 안 |
+| | Claude Code | Gemini CLI | Codex | Antigravity |
+|---|---|---|---|---|
+| 설정 파일 | `.claude/settings.json` | `.gemini/settings.json` | `.codex/hooks.json` | `.agents/hooks.json` |
+| 실행 전 차단 | PreToolUse | BeforeTool | PreToolUse | PreToolUse (`decision: deny`) |
+| 수정 후 알림 | PostToolUse | AfterTool | PostToolUse | 다음 모델 호출 직전 PreInvocation |
+| 완료 게이트 | Stop | AfterAgent | Stop | Stop (`decision: continue`) |
+| 파일 경로 | `tool_input.file_path` | `tool_input.file_path` | `apply_patch` 패치 텍스트 안 | `toolCall.args.TargetFile` |
+| 막는 방법 | exit 2 | exit 2 | exit 2 | stdout JSON |
 
-`.harness/hooks/lib.sh`가 이 차이를 맞추므로 세 도구가 같은 스크립트를 씁니다. 자세한 내용은 [references/tools.md](skills/pre-code-harness-setup/references/tools.md)를 보세요.
+`.harness/hooks/lib.sh`가 이 차이를 맞추므로 네 도구가 같은 스크립트를 씁니다. `scripts/selftest.sh`로 네 도구 형식(29개 항목)을 한 번에 시험할 수 있습니다. 자세한 내용은 [references/tools.md](skills/pre-code-harness-setup/references/tools.md)를 보세요.
 
 ## English summary
 
-An Agent Skill that sets up guardrails **before** an AI coding agent writes code: a shared `AGENTS.md` manual with session start/end routines, hooks that block irreversible commands and edits to protected files (acceptance tests, check scripts), soft/hard code-size limits, a completion gate that won't let the agent stop until `.harness/checks.sh` passes, and an optional staged workflow with human approval points. The same hook scripts work with Claude Code, Gemini CLI and Codex; ChatGPT chat gets an apply-yourself bundle. Install with `npx skills add karsyutain-art/pre-code-harness-setup`.
+An Agent Skill that sets up guardrails **before** an AI coding agent writes code: a shared `AGENTS.md` manual with session start/end routines, hooks that block irreversible commands and edits to protected files (acceptance tests, check scripts), soft/hard code-size limits, a completion gate that won't let the agent stop until `.harness/checks.sh` passes, and an optional staged workflow with human approval points. The same hook scripts work with Claude Code, Gemini CLI, Codex and Antigravity (exit-code and JSON-decision hook protocols); ChatGPT chat gets an apply-yourself bundle. Install with `npx skills add karsyutain-art/pre-code-harness-setup`.
+
+## 변경 기록
+- 1.1.0 — Antigravity 지원(`--tools antigravity`, `.agents/hooks.json`, JSON decision 방식 Hook, PreInvocation 알림)
+- 1.0.0 — 첫 공개: Claude Code·Gemini CLI·Codex·ChatGPT
 
 ## 라이선스
 MIT

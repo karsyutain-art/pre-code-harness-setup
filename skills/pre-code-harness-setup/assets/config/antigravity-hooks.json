@@ -1,0 +1,20 @@
+{
+  "pre-code-harness": {
+    "PreToolUse": [
+      { "matcher": "^run_command$", "hooks": [{ "type": "command", "command": "HARNESS_FORMAT=antigravity bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.harness/hooks/guard-bash.sh\"", "timeout": 30 }] },
+      { "matcher": "^(write_to_file|replace_file_content|multi_replace_file_content)$", "hooks": [{ "type": "command", "command": "HARNESS_FORMAT=antigravity bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.harness/hooks/guard-paths.sh\"", "timeout": 30 }] }
+    ],
+    "PostToolUse": [
+      { "matcher": "^(write_to_file|replace_file_content|multi_replace_file_content)$", "hooks": [{ "type": "command", "command": "HARNESS_FORMAT=antigravity bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.harness/hooks/code-limits.sh\" --hook", "timeout": 60 }] }
+    ],
+    "PreInvocation": [
+      { "type": "command", "command": "HARNESS_FORMAT=antigravity bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.harness/hooks/notes.sh\"", "timeout": 10 }
+    ],
+    "SessionStart": [
+      { "type": "command", "command": "HARNESS_FORMAT=antigravity bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.harness/hooks/session-brief.sh\" --format antigravity", "timeout": 30 }
+    ],
+    "Stop": [
+      { "type": "command", "command": "HARNESS_FORMAT=antigravity bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.harness/hooks/stop-gate.sh\"", "timeout": 900 }
+    ]
+  }
+}

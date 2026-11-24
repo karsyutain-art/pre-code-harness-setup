@@ -1,10 +1,10 @@
 ---
 name: pre-code-harness-setup
-description: 코드를 쓰기 전에 하네스(AGENTS.md 출근·퇴근 절차, PROGRESS/DECISIONS.md, 위험 명령·보호 파일 차단 Hook, 코드 크기 소프트/하드 리밋, 검수 에이전트), 루프(완료 기준 checks.sh와 완료 게이트 Hook), 그래프(단계·조건부 되돌림·사람 승인)를 프로젝트에 먼저 깔아둔다. Claude Code·Gemini CLI·Codex·ChatGPT에서 쓴다. 새 프로젝트나 기능 개발을 시작할 때, "바이브 코딩 시작 전 세팅", "하네스/Hook 설정", "루프 엔지니어링", "그래프 엔지니어링", "AI가 DB 지우지 못하게", "다 됐다는데 안 돼 있어", "테스트 통과할 때까지 알아서 돌게", "세션 넘어가면 맥락을 잃어", "파일이 너무 커져" 같은 요청이 오면 이름을 부르지 않아도 사용한다.
+description: 코드를 쓰기 전에 하네스(AGENTS.md 출근·퇴근 절차, PROGRESS/DECISIONS.md, 위험 명령·보호 파일 차단 Hook, 코드 크기 소프트/하드 리밋, 검수 에이전트), 루프(완료 기준 checks.sh와 완료 게이트 Hook), 그래프(단계·조건부 되돌림·사람 승인)를 프로젝트에 먼저 깔아둔다. Claude Code·Gemini CLI·Codex·Antigravity·ChatGPT에서 쓴다. 새 프로젝트나 기능 개발을 시작할 때, "바이브 코딩 시작 전 세팅", "하네스/Hook 설정", "루프 엔지니어링", "그래프 엔지니어링", "AI가 DB 지우지 못하게", "다 됐다는데 안 돼 있어", "테스트 통과할 때까지 알아서 돌게", "세션 넘어가면 맥락을 잃어", "파일이 너무 커져" 같은 요청이 오면 이름을 부르지 않아도 사용한다.
 license: MIT
-compatibility: bash, git, jq가 필요하다. Hook 자동 설치는 Claude Code·Gemini CLI·Codex를 지원하고, 저장소에 직접 접근할 수 없는 채팅(ChatGPT 웹 등)에서는 적용용 파일 묶음을 만든다.
+compatibility: bash, git, jq가 필요하다. Hook 자동 설치는 Claude Code·Gemini CLI·Codex·Antigravity를 지원하고, 저장소에 직접 접근할 수 없는 채팅(ChatGPT 웹 등)에서는 적용용 파일 묶음을 만든다.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
   author: karsyutain-art
 ---
 
@@ -28,8 +28,8 @@ metadata:
 | 파일 | 용도 |
 |---|---|
 | `scripts/install.sh` | 대상 프로젝트에 하네스를 깐다. 기존 설정은 병합하고, 여러 번 실행해도 같다 |
-| `scripts/selftest.sh` | 이 컴퓨터에서 Hook이 세 도구 입력 형식 모두에 맞게 도는지 임시 폴더에서 시험한다 |
-| `scripts/hooks/` | 공통 Hook (`lib.sh`가 Claude Code·Gemini CLI·Codex 입력 차이를 맞춘다) |
+| `scripts/selftest.sh` | 이 컴퓨터에서 Hook이 네 도구 입력 형식 모두에 맞게 도는지 임시 폴더에서 시험한다 |
+| `scripts/hooks/` | 공통 Hook (`lib.sh`가 Claude Code·Gemini CLI·Codex·Antigravity의 입력·출력 차이를 맞춘다) |
 | `assets/` | AGENTS.md·PROGRESS.md·DECISIONS.md·checks.sh·reviewer.md·workflow.md·보호 목록 템플릿, 도구별 Hook 설정 |
 | `references/tools.md` | 도구별 차이 (파일 이름, Hook 이벤트, 신뢰 절차) |
 | `references/limits.md` | 코드 크기 리밋 상세, 린터 설정, 기존 코드 기준선 |
@@ -43,16 +43,16 @@ metadata:
 ## 0단계 — 환경 확인과 진단
 
 **먼저 어디서 실행 중인지 본다.**
-- **셸로 대상 저장소에 접근할 수 있다** (Claude Code, Gemini CLI, Codex CLI·IDE, ChatGPT 데스크톱의 Codex) → 일반 모드. 아래 단계를 그대로 한다.
+- **셸로 대상 저장소에 접근할 수 있다** (Claude Code, Gemini CLI, Codex CLI·IDE, ChatGPT 데스크톱의 Codex, Antigravity 앱·IDE·CLI) → 일반 모드. 아래 단계를 그대로 한다.
 - **저장소에 접근할 수 없다** (ChatGPT 웹·모바일 채팅 등) → **번들 모드**(6단계). 진단은 질문으로 하고, 결과는 적용용 파일 묶음으로 준다.
 
-**설치할 도구**를 정한다. 지금 실행 중인 도구는 항상 포함하고, 저장소에 `.claude/`·`.gemini/`·`.codex/`·`CLAUDE.md`·`GEMINI.md`가 있으면 그 도구도 넣는다. 팀이 여러 도구를 쓰면 함께 넣는다(`--tools claude,gemini,codex`).
+**설치할 도구**를 정한다. 지금 실행 중인 도구는 항상 포함하고, 저장소에 `.claude/`·`.gemini/`·`.codex/`·`.agents/hooks.json`·`CLAUDE.md`·`GEMINI.md`가 있으면 그 도구도 넣는다. 팀이 여러 도구를 쓰면 함께 넣는다(`--tools claude,gemini,codex,antigravity`).
 
 **저장소를 먼저 살펴** 물을 것을 줄인다.
 - 언어·패키지 매니저·프레임워크, 테스트·린트·빌드 명령 (package.json 스크립트, Makefile의 `check`/`test`, CI 설정)
 - 린터 설정 (ESLint·Ruff 등) — 함수 단위 리밋을 걸 곳
 - 이미 리밋을 넘은 큰 파일 (`git ls-files | xargs wc -l | sort -n | tail`)
-- 이미 있는 것: AGENTS.md, CLAUDE.md, GEMINI.md, `.claude/`·`.gemini/`·`.codex/` 설정, `.harness/`
+- 이미 있는 것: AGENTS.md, CLAUDE.md, GEMINI.md, `.claude/`·`.gemini/`·`.codex/`·`.agents/hooks.json` 설정, `.harness/`
 - git 여부와 작업 트리 상태, `jq` 설치 여부
 - 되돌릴 수 없는 접점: DB, 외부 API, 결제, 배포 (`.env.example`, 마이그레이션 폴더, 배포 스크립트)
 - 기획 문서(spec)가 있는지 — 있으면 목표·완료 기준은 거기서 가져온다
@@ -93,7 +93,7 @@ bash <스킬>/scripts/install.sh --target <프로젝트> --tools <도구 목록>
 - `.harness/hooks/`에 공통 Hook 복사, `.harness/checks.sh`·`reviewer.md`·`workflow.md` 템플릿 생성
 - `AGENTS.md`에 하네스 구역 추가(없으면 생성), `CLAUDE.md`·`GEMINI.md`는 `@AGENTS.md`로 같은 매뉴얼을 불러오게 함
 - `PROGRESS.md`·`DECISIONS.md` 생성
-- 도구별 Hook 설정 **병합**: `.claude/settings.json`, `.gemini/settings.json`, `.codex/hooks.json` — 기존 항목은 보존하고 같은 명령은 중복 추가하지 않는다
+- 도구별 Hook 설정 **병합**: `.claude/settings.json`, `.gemini/settings.json`, `.codex/hooks.json`, `.agents/hooks.json`(Antigravity, `pre-code-harness` 그룹) — 기존 항목은 보존하고 같은 명령은 중복 추가하지 않는다
 - Claude Code면 `.claude/agents/reviewer.md`, 그리고 `.gitignore`에 `.harness/state/`
 - 이미 있는 문서·검사 파일은 **절대 덮어쓰지 않는다**
 
@@ -115,7 +115,7 @@ bash <스킬>/scripts/install.sh --target <프로젝트> --tools <도구 목록>
 |---|---|---|
 | guard-bash | 셸 명령 실행 직전 | DB 삭제·`rm -rf`·강제 push·`reset --hard` 같은 되돌릴 수 없는 명령을 막는다 |
 | guard-paths | 파일 수정 직전 | 보호 목록(합격 기준 테스트, 검사 장치, 기준선)의 수정을 막는다. 테스트를 고쳐서 통과시키는 꼼수 방지 |
-| code-limits | 파일 수정 직후 | 이번 변경으로 생긴 소프트 리밋 초과를 알린다 |
+| code-limits | 파일 수정 직후 | 이번 변경으로 생긴 소프트 리밋 초과를 알린다 (Antigravity는 다음 모델 호출 직전에 notes.sh가 전달) |
 | session-brief | 세션 시작 | PROGRESS.md·DECISIONS.md·진행 기록 요약을 넣는다 (출근 절차를 "부탁"이 아니라 자동으로) |
 | stop-gate | "끝났다"고 할 때 | checks.sh가 통과해야 끝낼 수 있다 (2단계) |
 
@@ -159,7 +159,7 @@ AI는 기존 코드를 찾아 쓰기보다 새로 쓰는 쪽으로 기울어 파
 
 ### 2-2. 완료 게이트 — stop-gate
 
-에이전트가 끝내려는 순간(Claude Code·Codex의 Stop, Gemini CLI의 AfterAgent) checks.sh를 돌리고, 실패하면 로그와 함께 돌려보낸다.
+에이전트가 끝내려는 순간(Claude Code·Codex·Antigravity의 Stop, Gemini CLI의 AfterAgent) checks.sh를 돌리고, 실패하면 로그와 함께 돌려보낸다.
 - **무한 루프 방지**: 세션별 실패 카운터, 상한(`STOP_GATE_MAX`, 기본 5) 초과 시 끝내고 `.harness/state/loop-report.md`에 기록
 - **코드 변경이 없는 턴은 생략**: 질문·설명, 문서(`.md`·`docs/`)만 바뀐 턴. 기획 단계에서 사용자에게 묻지 못하는 일을 막는다
 - **사용자에게 묻는 멈춤**: `.harness/state/ask-user`에 질문을 적으면 한 번 통과하고 기록을 남긴다. guard-bash가 "사용자에게 직접 실행을 요청하라"고 할 때처럼 검사 실패 중에도 사람의 결정이 필요한 순간이 있다. 남용은 reviewer가 기록으로 확인한다
@@ -207,16 +207,17 @@ AI는 기존 코드를 찾아 쓰기보다 새로 쓰는 쪽으로 기울어 파
    보호 목록(`.harness/protected-paths.txt`)에 이번 프로젝트의 합격 기준 테스트 경로, 이미 적용된 마이그레이션을 추가한다. 이후 이 목록은 사람이 고친다.
 2. 말로 "설정했다"가 아니라 실행해서 확인한다:
    ```bash
-   jq empty .claude/settings.json .gemini/settings.json .codex/hooks.json 2>&1   # 설치한 도구 것만
+   jq empty .claude/settings.json .gemini/settings.json .codex/hooks.json .agents/hooks.json 2>&1   # 설치한 도구 것만
    bash .harness/checks.sh; echo "checks => $?"      # 테스트 작성 전이면 실패가 정상
    echo '{}' | bash .harness/hooks/session-brief.sh | head -3
    ```
    selftest를 이미 통과했다면 Hook 동작은 확인된 것이다. 프로젝트에 맞게 guard-bash 패턴을 바꿨다면 그 패턴으로 한 번 더 시험한다.
-3. 세팅을 **커밋**한다(`.harness/`, AGENTS.md, CLAUDE.md, GEMINI.md, PROGRESS.md, DECISIONS.md, 도구 설정). worktree는 커밋된 파일만 가져간다.
+3. 세팅을 **커밋**한다(`.harness/`, AGENTS.md, CLAUDE.md, GEMINI.md, PROGRESS.md, DECISIONS.md, 도구 설정, `.agents/hooks.json`). worktree는 커밋된 파일만 가져간다.
 4. 도구별로 사용자가 해야 할 일을 알린다:
    - Claude Code: 재시작하거나 `/hooks`로 등록 확인
    - Gemini CLI: 재시작 후 `/hooks` 확인. 버전에 따라 Hook·Skills를 설정에서 켜야 한다
    - Codex: 프로젝트를 신뢰(trust)하고 `/hooks`에서 새 Hook을 검토·신뢰해야 **실행된다**
+   - Antigravity: CLI는 `/hooks`, 앱·IDE는 Customizations > Hooks에서 `pre-code-harness` 그룹이 보이는지 확인. Antigravity는 AGENTS.md를 직접 읽는다
 
 Hook은 사용자 컴퓨터 권한 그대로 실행된다. 설치한 스크립트 목록과 하는 일을 보여준다.
 
@@ -229,7 +230,7 @@ Hook은 사용자 컴퓨터 권한 그대로 실행된다. 설치한 스크립�
 2. **검증 결과** — 실제 출력 요약 (selftest 통과 수, checks.sh 결과)
 3. **가정한 것** — 묻지 않고 정한 것 (완료 기준, 리밋 수치, 재시도 한도)
 4. **시작 문구** — 바로 쓸 목표 문구 또는 첫 지시
-5. **남은 위험** — 막지 못한 것 (셸로 보호 파일 우회 가능 → reviewer가 확인, 운영 DB 계정 권한은 사용자가 직접 낮춰야 함, Codex Hook 신뢰 전에는 미작동)
+5. **남은 위험** — 막지 못한 것 (셸로 보호 파일 우회 가능 → reviewer가 확인, 운영 DB 계정 권한은 사용자가 직접 낮춰야 함, Codex Hook 신뢰 전에는 미작동, Antigravity의 수정 직후 알림은 한 단계 늦게 전달)
 
 그다음 사용자가 원하면 workflow.md의 첫 노드부터 시작한다. 작업 중 AI가 같은 실수를 반복하면 AGENTS.md "반복된 실수"에 한 줄, 정말 막아야 하면 Hook 패턴에 추가한다 — 하네스는 한 번에 완성하는 게 아니라 실수가 나올 때마다 자란다.
 
@@ -248,7 +249,7 @@ ChatGPT 웹·모바일 채팅처럼 사용자의 저장소에 셸로 접근할 �
    bash /tmp/hb/harness-bundle/harness-setup/scripts/install.sh --target . --tools <쓰는 도구> --overlay /tmp/hb/harness-bundle
    bash /tmp/hb/harness-bundle/harness-setup/scripts/install.sh --target . --finalize --overlay /tmp/hb/harness-bundle
    ```
-   `--overlay`의 파일은 템플릿 대신 쓰이고, 저장소에 이미 있는 문서는 덮어쓰지 않는다. Hook은 이후 사용자가 쓰는 Codex·Claude Code·Gemini CLI에서 돈다.
+   `--overlay`의 파일은 템플릿 대신 쓰이고, 저장소에 이미 있는 문서는 덮어쓰지 않는다. Hook은 이후 사용자가 쓰는 Codex·Claude Code·Gemini CLI·Antigravity에서 돈다.
 
 ---
 

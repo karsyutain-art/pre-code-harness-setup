@@ -4,7 +4,7 @@
 #   --check    .harness/checks.sh에서: 작업 트리 전체. 하드 리밋 초과 시 실패 → Stop Hook이 '완료'를 막음
 #   --baseline 도입 시 1회: 이미 하드 리밋을 넘은 파일을 현재 줄 수와 함께 기록 (이후 '더 늘리지만 않으면' 통과)
 MODE="${1:---check}"; [ "$MODE" = "--hook" ] || export HARNESS_NO_STDIN=1
-source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+HARNESS_EVENT=post; source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 SOFT="${LIMIT_FILE_SOFT:-300}"
 HARD="${LIMIT_FILE_HARD:-500}"
 FN_SOFT="${LIMIT_FN_SOFT:-40}"; ARGS_SOFT="${LIMIT_ARGS_SOFT:-4}"
@@ -64,7 +64,7 @@ case "$MODE" in
 --hook)
   msg=""
   while IFS= read -r f; do check_one "$f"; done < <(h_files)
-  [ -z "$msg" ] && exit 0
+  [ -z "$msg" ] && h_pass
   h_block "$msg" "→ 재사용 가능한 단위(함수·모듈)로 나누는 것을 먼저 검토하세요. 비슷한 코드가 이미 있으면 새로 만들지 말고 그것을 쓰세요." ;;
 --baseline)
   root="$(h_tree "$PWD")"; bl="$root/.harness/limits-baseline.txt"; : > "$bl"

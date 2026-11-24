@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # pre-code-harness-setup 설치 스크립트 — 하네스(Hook·검사·문서 템플릿)를 대상 프로젝트에 깐다.
-# Claude Code · Gemini CLI · Codex(ChatGPT) 공통. 여러 번 실행해도 결과가 같다(이미 있는 것은 건드리지 않음).
+# Claude Code · Gemini CLI · Codex(ChatGPT) · Antigravity 공통. 여러 번 실행해도 결과가 같다(이미 있는 것은 건드리지 않음).
 #
 # 사용법:
-#   bash install.sh --target <프로젝트> [--tools claude,gemini,codex|auto] [--overlay <폴더>] [--force]
+#   bash install.sh --target <프로젝트> [--tools claude,gemini,codex,antigravity|auto] [--overlay <폴더>] [--force]
 #   bash install.sh --target <프로젝트> --finalize      # 세팅 마지막: 보호 목록 설치 + 기준선 기록
 #
-#   --tools    설정을 만들 도구. auto(기본)는 .claude/.gemini/.codex·CLAUDE.md·GEMINI.md·AGENTS.md로 감지, 없으면 셋 다
+#   --tools    설정을 만들 도구. auto(기본)는 .claude/.gemini/.codex/.agents/hooks.json·CLAUDE.md·GEMINI.md로 감지, 없으면 넷 다
 #   --overlay  미리 채워 둔 파일(AGENTS.md, .harness/checks.sh 등)이 있는 폴더. 템플릿 대신 이것을 쓴다
 #   --force    Hook 스크립트가 이미 있어도 새 버전으로 덮어쓴다 (문서·검사 파일은 절대 덮어쓰지 않음)
 set -euo pipefail
@@ -48,7 +48,8 @@ if [ "$TOOLS" = "auto" ]; then
   { [ -d "$TARGET/.claude" ] || [ -f "$TARGET/CLAUDE.md" ]; } && TOOLS+="claude,"
   { [ -d "$TARGET/.gemini" ] || [ -f "$TARGET/GEMINI.md" ]; } && TOOLS+="gemini,"
   [ -d "$TARGET/.codex" ] && TOOLS+="codex,"
-  [ -n "$TOOLS" ] || TOOLS="claude,gemini,codex,"
+  [ -f "$TARGET/.agents/hooks.json" ] && TOOLS+="antigravity,"
+  [ -n "$TOOLS" ] || TOOLS="claude,gemini,codex,antigravity,"
 fi
 has() { case ",$TOOLS," in *",$1,"*) return 0 ;; *) return 1 ;; esac; }
 echo "[하네스 설치] 대상: $TARGET / 도구: ${TOOLS%,}"
@@ -115,6 +116,12 @@ merge() {   # merge <설정 파일> <추가할 JSON 파일>
 has claude && merge .claude/settings.json "$ASSETS/config/claude-settings.json"
 has gemini && merge .gemini/settings.json "$ASSETS/config/gemini-settings.json"
 has codex  && merge .codex/hooks.json     "$ASSETS/config/codex-hooks.json"
+if has antigravity; then   # Antigravity: 최상위 키가 "그룹 이름"인 형식. 우리 그룹(pre-code-harness)만 넣고 다른 그룹은 그대로 둔다
+  f="$TARGET/.agents/hooks.json"; mkdir -p "$(dirname "$f")"; [ -s "$f" ] || echo '{}' > "$f"
+  if ! jq empty "$f" 2>/dev/null; then echo "  ! .agents/hooks.json 이 올바른 JSON이 아니라 건너뜁니다" >&2
+  elif jq -e 'has("pre-code-harness")' "$f" >/dev/null && [ "$FORCE" = 0 ]; then say "유지(이미 있음, 갱신하려면 --force): .agents/hooks.json 의 pre-code-harness 그룹"
+  else tmp="$(mktemp)"; jq --slurpfile a "$ASSETS/config/antigravity-hooks.json" '. + $a[0]' "$f" > "$tmp" && mv "$tmp" "$f"; say "Hook 설정 병합: .agents/hooks.json (pre-code-harness 그룹)"; fi
+fi
 if has claude && [ ! -f "$TARGET/.claude/agents/reviewer.md" ]; then
   mkdir -p "$TARGET/.claude/agents"; cp "$ASSETS/claude-agent-reviewer.md" "$TARGET/.claude/agents/reviewer.md"; say "생성: .claude/agents/reviewer.md"
 fi
@@ -134,4 +141,5 @@ EOF
 has claude && echo "  · Claude Code: 재시작하거나 /hooks 로 등록 확인"
 has gemini && echo "  · Gemini CLI: 재시작 후 /hooks 로 등록 확인 (Hook·Skills가 실험 기능인 버전은 설정에서 켜기)"
 has codex  && echo "  · Codex: 프로젝트를 신뢰(trust)하고 /hooks 에서 새 Hook을 검토·신뢰해야 실행된다"
+has antigravity && echo "  · Antigravity: CLI는 /hooks, 앱·IDE는 Customizations > Hooks 에서 pre-code-harness 그룹 확인"
 exit 0

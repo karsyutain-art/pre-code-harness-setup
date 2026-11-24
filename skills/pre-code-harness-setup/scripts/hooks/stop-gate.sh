@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Stop (Claude Code·Codex) / AfterAgent (Gemini CLI): 완료 기준(.harness/checks.sh)을 통과해야 멈출 수 있다.
 # 세 도구 모두 exit 2 + stderr를 "아직 끝나지 않았다, 이 내용을 보고 계속하라"로 처리한다.
-source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
-ok() { echo '{}'; exit 0; }   # Codex는 exit 0일 때 stdout이 JSON이어야 한다
-sid="$(h_get .session_id)"; sid="${sid:-default}"
+HARNESS_EVENT=stop; source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+ok() { h_pass; }
+sid="$(h_session)"
 active="$(h_get .stop_hook_active)"
+[ "$HARNESS_FORMAT" = antigravity ] && active=true   # Antigravity엔 이 필드가 없다 → 통과·상한 도달 때만 카운터를 비운다
 root="$(h_tree)"                                   # 지금 작업 중인 트리 (worktree면 그 worktree)
 MAX="${STOP_GATE_MAX:-5}"
 state="$PROJ/.harness/state"; mkdir -p "$state"
@@ -33,11 +34,10 @@ if [ "$n" -gt "$MAX" ]; then
   { echo "## $(date '+%F %T') 루프 중단: 완료 기준을 ${MAX}회 넘게 통과하지 못함 ($root)"; tail -n 40 "$log"; echo; } >> "$state/loop-report.md"
   rm -f "$cnt"; ok
 fi
-{
+h_block "$(
   echo "아직 완료가 아닙니다: 완료 기준(.harness/checks.sh) 미통과 ($n/$MAX, $root)."
   echo "아래 로그를 보고 구현을 고친 뒤 다시 끝내세요. 테스트를 지우거나 약화하지 마세요."
   echo "사용자의 결정·직접 실행이 필요해서 멈추는 것이라면, 질문을 .harness/state/ask-user 에 적고 끝내세요."
   [ "$n" -eq "$MAX" ] && echo "마지막 시도입니다. 이번에도 실패하면 원인·시도한 방법을 PROGRESS.md에 정리하세요."
   tail -n 30 "$log"
-} >&2
-exit 2
+)"

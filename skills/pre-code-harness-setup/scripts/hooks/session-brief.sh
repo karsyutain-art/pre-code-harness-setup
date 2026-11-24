@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SessionStart: 출근 브리핑. Claude Code·Codex는 stdout을 그대로, Gemini CLI는 JSON(--format gemini)으로 받는다.
-source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+HARNESS_EVENT=start; source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 brief() {
   echo "[출근 브리핑] AGENTS.md의 '세션 시작(출근)' 절차를 따르세요."
   if [ -f "$PROJ/PROGRESS.md" ]; then echo "--- PROGRESS.md (앞 60줄)"; head -n 60 "$PROJ/PROGRESS.md"
@@ -13,6 +13,8 @@ brief() {
 }
 if [ "${1:-}" = "--format" ] && [ "${2:-}" = "gemini" ]; then
   brief | jq -Rs '{hookSpecificOutput: {additionalContext: .}}'
+elif [ "${1:-}" = "--format" ] && [ "${2:-}" = "antigravity" ]; then
+  brief | jq -Rs '{injectSteps: [{systemMessage: {systemMessage: .}}]}'
 else
   brief
 fi

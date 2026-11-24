@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # PreToolUse / BeforeTool (파일 수정): 보호 파일 수정 차단. 파일이 속한 작업 트리(worktree 포함) 기준으로 판정.
-source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+HARNESS_EVENT=pre; source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 while IFS= read -r f; do
   [ -n "$f" ] || continue
   d="$(dirname "$f")"; while [ ! -d "$d" ] && [ "$d" != "/" ]; do d="$(dirname "$d")"; done
@@ -17,4 +17,4 @@ while IFS= read -r f; do
     esac
   done < "$list"
 done < <(h_files)
-exit 0
+h_pass
