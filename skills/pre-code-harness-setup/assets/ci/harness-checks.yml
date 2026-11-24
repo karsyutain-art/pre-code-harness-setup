@@ -1,0 +1,21 @@
+# 하네스 완료 기준을 CI에서도 — 에이전트가 아닌 사람의 변경에도 같은 기준을 건다.
+# 프로젝트에 맞게 언어 설정·의존성 설치 단계를 채운다.
+name: harness-checks
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # 테스트 약화 탐지가 기준 커밋과 비교한다
+      # - uses: actions/setup-node@v4   # 예: Node 프로젝트
+      #   with: { node-version: 22 }
+      # - run: npm ci
+      - name: 완료 기준 (.harness/checks.sh)
+        run: bash .harness/checks.sh --full
+        env:
+          HARNESS_TEST_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}

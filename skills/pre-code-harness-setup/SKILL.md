@@ -4,7 +4,7 @@ description: 코드를 쓰기 전에 하네스(AGENTS.md 출근·퇴근 절차, 
 license: MIT
 compatibility: bash, git, jq가 필요하다. Hook 자동 설치는 Claude Code·Gemini CLI·Codex·Antigravity를 지원하고, 저장소에 직접 접근할 수 없는 채팅(ChatGPT 웹 등)에서는 적용용 파일 묶음을 만든다.
 metadata:
-  version: "1.2.0"
+  version: "1.3.0"
   author: karsyutain-art
 ---
 
@@ -29,6 +29,7 @@ metadata:
 |---|---|
 | `scripts/install.sh` | 대상 프로젝트에 하네스를 깐다. 기존 설정은 병합하고, 여러 번 실행해도 같다 |
 | `scripts/selftest.sh` | 이 컴퓨터에서 Hook이 네 도구 입력 형식 모두에 맞게 도는지 임시 폴더에서 시험한다 |
+| `scripts/detect-checks.sh` | 프로젝트의 린트·타입 검사·테스트·빌드 명령을 찾아 빠른 검사/전체 검사로 나눠 준다 |
 | `scripts/hooks/` | 공통 Hook (`lib.sh`가 Claude Code·Gemini CLI·Codex·Antigravity의 입력·출력 차이를 맞춘다) |
 | `assets/` | AGENTS.md·PROGRESS.md·DECISIONS.md·checks.sh·reviewer.md·workflow.md·보호 목록 템플릿, 도구별 Hook 설정 |
 | `references/tools.md` | 도구별 차이 (파일 이름, Hook 이벤트, 신뢰 절차) |
@@ -90,11 +91,13 @@ bash <스킬>/scripts/install.sh --target <프로젝트> --tools <도구 목록>
 ```
 
 `install.sh`가 하는 일 (자세한 결과물은 `references/tools.md`):
-- `.harness/hooks/`에 공통 Hook 복사, `.harness/checks.sh`·`reviewer.md`·`workflow.md` 템플릿 생성
+- `.harness/hooks/`에 공통 Hook 복사, `reviewer.md`·`workflow.md` 템플릿 생성
+- `.harness/checks.sh` 생성: `detect-checks.sh`가 찾은 명령을 빠른 검사·전체 검사 구역에 미리 채운다
 - `AGENTS.md`에 하네스 구역 추가(없으면 생성), `CLAUDE.md`·`GEMINI.md`는 `@AGENTS.md`로 같은 매뉴얼을 불러오게 함
 - `PROGRESS.md`·`DECISIONS.md` 생성
 - 도구별 Hook 설정 **병합**: `.claude/settings.json`, `.gemini/settings.json`, `.codex/hooks.json`, `.agents/hooks.json`(Antigravity, `pre-code-harness` 그룹) — 기존 항목은 보존하고 같은 명령은 중복 추가하지 않는다
 - Claude Code면 `.claude/agents/reviewer.md`, 그리고 `.gitignore`에 `.harness/state/`
+- `--with-ci`를 주면 같은 검사를 도는 GitHub Actions 워크플로(`.github/workflows/harness-checks.yml`)도 만든다. 에이전트가 아닌 사람의 변경에도 같은 기준이 걸리므로, CI를 쓰는 저장소라면 권한다
 - 이미 있는 문서·검사 파일은 **절대 덮어쓰지 않는다**
 
 ### 1-1. 매뉴얼 채우기 — AGENTS.md
@@ -151,7 +154,11 @@ AI는 기존 코드를 찾아 쓰기보다 새로 쓰는 쪽으로 기울어 파
 
 ### 2-1. checks.sh — 완료 기준의 단일 출처
 
-성공 기준을 **실행 가능한 명령**으로 바꿔 `.harness/checks.sh`에 모은다. 템플릿에는 파일 길이 리밋이 이미 들어 있다. 진단에서 찾은 린트·타입 검사·테스트 명령을 넣는다. 말로만 된 기준("모바일에서 깨지지 않게")은 가능한 한 명령으로 바꾸고(Playwright 뷰포트 테스트, 스크린샷 비교, 숫자 검산), 명령으로 못 바꾸는 기준은 `.harness/reviewer.md`에 항목으로 넣는다.
+성공 기준을 **실행 가능한 명령**으로 바꿔 `.harness/checks.sh`에 모은다. 두 구역으로 나뉜다.
+- **빠른 검사** (`--fast`, 작업 중 끝낼 때마다): 코드 크기 리밋, 테스트 약화 탐지, 린트, 타입 검사
+- **전체 검사** (기본, 완료를 주장할 때·CI·출근 체크): 빠른 검사 + 테스트, 빌드
+
+설치할 때 `detect-checks.sh`가 package.json(npm·pnpm·yarn·bun), pyproject·pytest, go.mod, Cargo.toml, Gradle·Maven, .NET, Makefile(`check` 타깃이 있으면 그것)에서 명령을 찾아 미리 채운다. 자동 감지는 출발점이다 — 진단 결과와 맞는지 확인하고, 빠진 것(E2E, 스크린샷 비교 등)을 `step <이름> <명령>` 형식으로 넣는다. 단계 이름은 실패 안내에 쓰인다. 말로만 된 기준("모바일에서 깨지지 않게")은 가능한 한 명령으로 바꾸고(Playwright 뷰포트 테스트, 스크린샷 비교, 숫자 검산), 명령으로 못 바꾸는 기준은 `.harness/reviewer.md`에 항목으로 넣는다.
 
 **테스트가 없다면**: 기능 코드보다 먼저 합격 기준 테스트를 작성하고(실패하는 상태 확인), 보호 목록에 넣는다. 보호하는 것은 이 합격 기준 테스트뿐이다 — 구현 중 쓰는 단위 테스트는 설계와 함께 바뀌어야 하므로 보호하지 않는다.
 
@@ -164,6 +171,16 @@ AI는 기존 코드를 찾아 쓰기보다 새로 쓰는 쪽으로 기울어 파
 - **코드 변경이 없는 턴은 생략**: 질문·설명, 문서(`.md`·`docs/`)만 바뀐 턴. 기획 단계에서 사용자에게 묻지 못하는 일을 막는다
 - **사용자에게 묻는 멈춤**: `.harness/state/ask-user`에 질문을 적으면 한 번 통과하고 기록을 남긴다. guard-bash가 "사용자에게 직접 실행을 요청하라"고 할 때처럼 검사 실패 중에도 사람의 결정이 필요한 순간이 있다. 남용은 reviewer가 기록으로 확인한다
 - **worktree 인식**: 지금 작업 중인 작업 트리(`.worktrees/` 포함)를 검사한다
+- **검사 범위**: 마지막 메시지가 완료를 주장하면("완료했습니다", "done", "all tests pass" 등) 전체 검사, 아니면 빠른 검사만. 메시지를 주지 않는 도구(Antigravity)는 항상 전체 검사. 전체 검사를 통과한 뒤 코드가 그대로면 다시 돌리지 않는다
+- **실패 원인별 안내**: 리밋 실패면 "나누거나, 나눌 수 없는 정당한 이유가 있으면 사람에게 예외 승인 요청", 테스트 약화면 "구현을 고치거나 의도한 변경임을 표시" 식으로 단계에 맞는 안내를 붙인다
+
+### 2-2a. 테스트 약화 탐지 — test-guard
+
+보호 목록은 합격 기준 테스트만 지킨다. 나머지 테스트를 "고쳐서 통과시키는" 꼼수는 `test-guard`가 변경 내용으로 잡는다(빠른 검사에 들어 있다).
+- **막음**: 테스트 파일 삭제·테스트가 아닌 곳으로 이동, skip·only·xfail·ignore 표시 추가(JS/TS, Python, Go, Rust, Java/Kotlin, C#)
+- **경고**: 테스트 파일의 assertion 순감소, 엄격한 비교를 느슨한 비교로 바꿈(toEqual → toBeTruthy 등), 빈 catch·except pass, 테스트를 끄는 설정. `HARNESS_TEST_GUARD=strict`면 이것도 막는다
+- **기준점**: 세션 시작 시점(브리핑 Hook이 기록), 다른 브랜치면 기본 브랜치와의 분기점, CI에서는 `HARNESS_TEST_BASE`. 세션 중에 커밋해 버린 약화도 잡는다
+- **의도한 변경**: 그 줄에 `harness-allow-test-change: <이유>` 주석(reviewer가 이유를 확인), 삭제·이동은 사람이 `.harness/test-guard-allow.txt`(보호 파일)에 등록
 
 ### 2-3. reviewer — 만든 사람과 검사하는 사람 분리
 
@@ -200,7 +217,7 @@ AI는 기존 코드를 찾아 쓰기보다 새로 쓰는 쪽으로 기울어 파
 
 ## 4단계 — 마무리와 검증
 
-1. checks.sh, AGENTS.md, workflow.md를 다 채운 **뒤에** 보호 목록과 기준선을 설치한다. 먼저 설치하면 세팅 도중 checks.sh를 고칠 때 스스로 막힌다.
+1. checks.sh, AGENTS.md, workflow.md를 다 채운 **뒤에** 보호 목록, 기존 큰 파일 기준선, 테스트 삭제 허용 목록을 설치한다. 먼저 설치하면 세팅 도중 checks.sh를 고칠 때 스스로 막힌다.
    ```bash
    bash <스킬>/scripts/install.sh --target <프로젝트> --finalize
    ```
@@ -259,6 +276,8 @@ ChatGPT 웹·모바일 채팅처럼 사용자의 저장소에 셸로 접근할 �
 |---|---|
 | 하지 말라는 걸 함 | guard-bash 패턴, AI 바깥 권한 축소 |
 | "다 됐다"는데 안 돼 있음 | checks.sh에 측정 가능한 기준 추가, reviewer |
+| 테스트가 느려서 루프가 굼뜸 | 느린 검사는 전체 검사 구역에만, E2E는 CI로 |
+| 테스트 약화 경고가 너무 많음·적음 | `HARNESS_TEST_GUARD=strict`/`off`, 허용 주석·허용 목록 |
 | 끝없이 고치다 엉망 | `STOP_GATE_MAX` 낮추기, 성공 기준 구체화 |
 | 테스트를 고쳐서 통과시킴 | 보호 목록 등록, reviewer의 diff 점검 |
 | 어디서 틀렸는지 모름 | workflow.md 단계 분리, 단계별 판정, PROGRESS.md 기록 |

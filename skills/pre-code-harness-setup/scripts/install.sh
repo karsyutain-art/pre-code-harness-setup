@@ -5,6 +5,7 @@
 # 사용법:
 #   bash install.sh --target <프로젝트> [--tools claude,gemini,codex,antigravity|auto] [--overlay <폴더>] [--force]
 #   bash install.sh --target <프로젝트> --finalize      # 세팅 마지막: 보호 목록 설치 + 기준선 기록
+#   --with-ci  GitHub Actions 워크플로(.github/workflows/harness-checks.yml)도 만든다
 #
 #   --tools    설정을 만들 도구. auto(기본)는 .claude/.gemini/.codex/.agents/hooks.json·CLAUDE.md·GEMINI.md로 감지, 없으면 넷 다
 #   --overlay  미리 채워 둔 파일(AGENTS.md, .harness/checks.sh 등)이 있는 폴더. 템플릿 대신 이것을 쓴다
@@ -13,7 +14,7 @@ set -euo pipefail
 
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ASSETS="$SKILL_DIR/assets"
-TARGET="" TOOLS="auto" OVERLAY="" FORCE=0 FINALIZE=0
+TARGET="" TOOLS="auto" OVERLAY="" FORCE=0 FINALIZE=0 CI=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --target)   TARGET="$2"; shift 2 ;;
@@ -21,7 +22,8 @@ while [ $# -gt 0 ]; do
     --overlay)  OVERLAY="$2"; shift 2 ;;
     --force)    FORCE=1; shift ;;
     --finalize) FINALIZE=1; shift ;;
-    -h|--help)  sed -n '2,13p' "$0"; exit 0 ;;
+    --with-ci)  CI=1; shift ;;
+    -h|--help)  sed -n '2,14p' "$0"; exit 0 ;;
     *) echo "알 수 없는 옵션: $1" >&2; exit 64 ;;
   esac
 done
@@ -38,6 +40,7 @@ if [ "$FINALIZE" = 1 ]; then
     src="$ASSETS/protected-paths.txt"; [ -n "$OVERLAY" ] && [ -f "$OVERLAY/.harness/protected-paths.txt" ] && src="$OVERLAY/.harness/protected-paths.txt"
     cp "$src" "$TARGET/.harness/protected-paths.txt"; say "보호 목록 설치: .harness/protected-paths.txt — 이후 사람이 고친다"
   fi
+  if [ ! -f "$TARGET/.harness/test-guard-allow.txt" ]; then cp "$ASSETS/test-guard-allow.txt" "$TARGET/.harness/test-guard-allow.txt"; say "생성: .harness/test-guard-allow.txt (테스트 삭제 허용 목록 — 사람이 관리)"; fi
   (cd "$TARGET" && bash .harness/hooks/code-limits.sh --baseline | sed 's/^/  /')
   exit 0
 fi
@@ -70,7 +73,16 @@ place() {   # place <assets 안 이름> <대상 상대경로>
   if [ -e "$dest" ]; then say "유지(이미 있음): $2"; return 0; fi
   mkdir -p "$(dirname "$dest")"; cp "$src" "$dest"; say "생성: $2"
 }
-place checks.sh   .harness/checks.sh; chmod +x "$TARGET/.harness/checks.sh"
+if [ -e "$TARGET/.harness/checks.sh" ]; then say "유지(이미 있음): .harness/checks.sh"
+elif [ -n "$OVERLAY" ] && [ -f "$OVERLAY/.harness/checks.sh" ]; then cp "$OVERLAY/.harness/checks.sh" "$TARGET/.harness/checks.sh"; say "생성: .harness/checks.sh (overlay)"
+else   # 검사 명령을 자동으로 찾아 빠른 검사·전체 검사 구역에 넣는다
+  fast="$(bash "$SKILL_DIR/scripts/detect-checks.sh" "$TARGET" --fast)"; full="$(bash "$SKILL_DIR/scripts/detect-checks.sh" "$TARGET" --full)"
+  [ -n "$fast" ] || fast="# step lint npm run lint      ← 찾지 못함: 린트·타입 검사 명령을 넣는다"
+  [ -n "$full" ] || full="# step test npm test          ← 찾지 못함: 테스트·빌드 명령을 넣는다"
+  awk -v f="$fast" -v u="$full" '$0=="#@FAST@"{print f; next} $0=="#@FULL@"{print u; next} {print}' "$ASSETS/checks.sh" > "$TARGET/.harness/checks.sh"
+  say "생성: .harness/checks.sh — 자동 감지한 명령:"; bash "$SKILL_DIR/scripts/detect-checks.sh" "$TARGET" | sed 's/^/      /'
+fi
+chmod +x "$TARGET/.harness/checks.sh"
 place reviewer.md .harness/reviewer.md
 place workflow.md .harness/workflow.md
 place PROGRESS.md PROGRESS.md
@@ -124,6 +136,11 @@ if has antigravity; then   # Antigravity: 최상위 키가 "그룹 이름"인 �
 fi
 if has claude && [ ! -f "$TARGET/.claude/agents/reviewer.md" ]; then
   mkdir -p "$TARGET/.claude/agents"; cp "$ASSETS/claude-agent-reviewer.md" "$TARGET/.claude/agents/reviewer.md"; say "생성: .claude/agents/reviewer.md"
+fi
+
+if [ "$CI" = 1 ]; then
+  if [ -f "$TARGET/.github/workflows/harness-checks.yml" ]; then say "유지(이미 있음): .github/workflows/harness-checks.yml"
+  else mkdir -p "$TARGET/.github/workflows"; cp "$ASSETS/ci/harness-checks.yml" "$TARGET/.github/workflows/harness-checks.yml"; say "생성: .github/workflows/harness-checks.yml (언어 설정 단계를 채울 것)"; fi
 fi
 
 # ---------- 4) .gitignore ----------

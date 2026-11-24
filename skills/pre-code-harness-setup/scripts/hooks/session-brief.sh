@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # SessionStart: 출근 브리핑. Claude Code·Codex는 stdout을 그대로, Gemini CLI는 JSON(--format gemini)으로 받는다.
 HARNESS_EVENT=start; source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+# 테스트 약화 탐지의 기준점: 이 세션이 시작될 때의 커밋
+mkdir -p "$PROJ/.harness/state"; git -C "$PROJ" rev-parse -q --verify HEAD > "$PROJ/.harness/state/session-base" 2>/dev/null || true
 brief() {
   echo "[출근 브리핑] AGENTS.md의 '세션 시작(출근)' 절차를 따르세요."
   if [ -f "$PROJ/PROGRESS.md" ]; then echo "--- PROGRESS.md (앞 60줄)"; head -n 60 "$PROJ/PROGRESS.md"

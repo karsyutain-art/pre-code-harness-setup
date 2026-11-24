@@ -13,7 +13,7 @@ EXT_RE='\.(js|jsx|ts|tsx|mjs|cjs|py|go|rb|java|kt|swift|rs|php|cs|vue|svelte)$'
 SKIP_RE='(^|/)(node_modules|dist|build|vendor|migrations|__generated__|\.next|coverage)/|\.min\.|\.d\.ts$|_pb2\.py$'
 
 is_src() { [[ "$1" =~ $EXT_RE ]] && ! [[ "$1" =~ $SKIP_RE ]]; }
-count() { wc -l < "$1" | tr -d ' '; }
+count() { grep -cv '^[[:space:]]*$' "$1" 2>/dev/null || true; }   # 빈 줄은 세지 않는다
 base_of() { [ -f "$root/.harness/limits-baseline.txt" ] && awk -F'\t' -v p="$1" '$1==p{print $2}' "$root/.harness/limits-baseline.txt"; }
 list_src() { git -C "$root" ls-files -co --exclude-standard | while IFS= read -r r; do is_src "$r" && [ -f "$root/$r" ] && echo "$r"; done; }
 
@@ -43,11 +43,11 @@ check_one() {   # $1 = 절대 경로. 알릴 내용이 있으면 msg에 덧붙�
   root="$(h_tree "$(dirname "$f")")"; rel="${f#"$root"/}"
   is_src "$rel" || return 0
   n=$(count "$f"); b=$(base_of "$rel")
-  prev=$(git -C "$root" show "HEAD:$rel" 2>/dev/null | wc -l | tr -d ' ')   # 마지막 커밋의 줄 수 (새 파일이면 0)
+  prev=$(git -C "$root" show "HEAD:$rel" 2>/dev/null | grep -cv '^[[:space:]]*$' || true); prev="${prev:-0}"   # 마지막 커밋의 줄 수 (새 파일이면 0)
   if [ -n "$b" ]; then
     [ "$n" -gt "$b" ] && msg+="하드 리밋: $rel 은(는) 기존 초과 파일인데 ${b}줄 → ${n}줄로 늘었습니다. 늘어난 코드는 별도 모듈로 빼세요."$'\n'
   elif [ "$n" -gt "$HARD" ]; then
-    msg+="하드 리밋: $rel = ${n}줄 (> $HARD). 이대로면 완료 판정에서 실패합니다. 책임별로 모듈을 나누세요."$'\n'
+    msg+="하드 리밋: $rel = ${n}줄 (> $HARD, 빈 줄 제외). 이대로면 완료 판정에서 실패합니다. 책임별로 모듈을 나누세요."$'\n'
   elif [ "$n" -gt "$SOFT" ] && { [ "$prev" -le "$SOFT" ] || [ "$n" -gt "$prev" ]; }; then
     msg+="소프트 리밋: $rel = ${n}줄 (> $SOFT, 마지막 커밋 ${prev}줄). 이번에 늘어난 부분을 나눌 수 있으면 나누고, 미룬다면 이유를 PROGRESS.md에 적으세요. 기존 코드를 이 김에 리팩터링하지는 마세요."$'\n'
   fi
@@ -77,7 +77,7 @@ case "$MODE" in
     if [ -n "$b" ]; then
       [ "$n" -gt "$b" ] && { echo "하드 리밋 위반: $r ${b}→${n}줄 (기존 초과 파일은 늘릴 수 없음)"; fail=1; }
     elif [ "$n" -gt "$HARD" ]; then
-      echo "하드 리밋 위반: $r = ${n}줄 (> $HARD)"; fail=1
+      echo "하드 리밋 위반: $r = ${n}줄 (> $HARD, 빈 줄 제외)"; fail=1
     fi
   done < <(list_src)
   exit $fail ;;

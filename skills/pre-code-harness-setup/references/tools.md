@@ -14,6 +14,7 @@
 | 실행 후 알림 | `PostToolUse` | `AfterTool` | `PostToolUse` | `PostToolUse`는 피드백 불가 → 알림을 쌓아 두고 `PreInvocation`(notes.sh)이 다음 모델 호출 직전에 넣음 |
 | "끝"을 막는 게이트 | `Stop` (exit 2 → 계속) | `AfterAgent` (exit 2 → 자동 재시도) | `Stop` (exit 2 → 이어서 작업) | `Stop` → JSON `{"decision":"continue","reason":...}` |
 | 세션 시작 브리핑 | `SessionStart` stdout | `SessionStart` JSON `hookSpecificOutput.additionalContext` | `SessionStart` stdout | `SessionStart` JSON `injectSteps[].systemMessage` |
+| 완료 게이트가 읽는 마지막 메시지 | `last_assistant_message` | `prompt_response` | `last_assistant_message` | 없음 → 항상 전체 검사 |
 | Hook 시간 제한 단위 | 초 | 밀리초 (기본 60000) | 초 (기본 600) | 초 (기본 30) |
 | 프로젝트 경로 변수 | `$CLAUDE_PROJECT_DIR` | `$GEMINI_PROJECT_DIR` | 없음 → `git rev-parse --show-toplevel` | 없음 → `git rev-parse --show-toplevel`. 입력에 `cwd`가 없어 `args.Cwd`·`workspacePaths[0]` 사용 |
 | 스킬 설치 | 플러그인 마켓플레이스 / `npx skills add` | `gemini extensions install` / `npx skills add` | `codex plugin marketplace add` / `npx skills add` | `agy plugin install <GitHub 주소>` / `npx skills add -a antigravity` |
@@ -31,10 +32,11 @@ Claude Code·Gemini CLI·Codex는 Hook에 stdin JSON(`session_id`, `cwd`, `tool_
 ├── CLAUDE.md / GEMINI.md     @AGENTS.md 한 줄 (기존 내용은 그대로)
 ├── PROGRESS.md  DECISIONS.md
 ├── .harness/
-│   ├── hooks/                lib.sh, guard-bash.sh, guard-paths.sh, code-limits.sh, stop-gate.sh, session-brief.sh, notes.sh
-│   ├── checks.sh             완료 기준의 단일 출처
+│   ├── hooks/                lib.sh, guard-bash.sh, guard-paths.sh, code-limits.sh, test-guard.sh, stop-gate.sh, session-brief.sh, notes.sh
+│   ├── checks.sh             완료 기준의 단일 출처 (빠른 검사 / 전체 검사)
 │   ├── protected-paths.txt   (finalize 단계에서 설치)
 │   ├── limits-baseline.txt   (finalize 단계에서 기록)
+│   ├── test-guard-allow.txt  (finalize 단계에서 생성, 사람이 관리)
 │   ├── reviewer.md  workflow.md
 │   └── state/                (gitignore) 카운터·로그·ask-user·loop-report·pending-notes
 ├── .claude/settings.json  .claude/agents/reviewer.md

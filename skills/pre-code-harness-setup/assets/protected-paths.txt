@@ -6,6 +6,8 @@ tests/acceptance/*
 .harness/checks.sh
 .harness/protected-paths.txt
 .harness/limits-baseline.txt
+.harness/test-guard-allow.txt
+.github/workflows/harness-checks.yml
 .claude/settings.json
 .gemini/settings.json
 .codex/hooks.json
