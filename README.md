@@ -1,5 +1,7 @@
 # pre-code-harness-setup
 
+[![skills.sh](https://skills.sh/b/karsyutain-art/pre-code-harness-setup)](https://skills.sh/karsyutain-art/pre-code-harness-setup)
+
 AI 코딩 에이전트가 **코드를 쓰기 전에** 프로젝트에 세 가지 장치를 깔아 주는 Agent Skill입니다. Claude Code, Gemini CLI, Codex, ChatGPT에서 씁니다.
 
 - **하네스** — 규칙을 알려주기만 하는 게 아니라 Hook으로 지키게 만듭니다
@@ -36,7 +38,7 @@ gemini extensions install https://github.com/karsyutain-art/pre-code-harness-set
 버전에 따라 Agent Skills와 Hook이 실험 기능이면 설정에서 켜야 합니다.
 
 ### ChatGPT (웹·데스크톱)
-[Releases](https://github.com/karsyutain-art/pre-code-harness-setup/releases)에서 `pre-code-harness-setup.zip`을 받아 ChatGPT의 스킬 화면에서 업로드합니다. 채팅의 ChatGPT는 사용자 저장소에 직접 쓸 수 없으므로, 진단 결과로 채운 **적용용 파일 묶음(zip)**을 만들어 줍니다. 저장소에서 안내된 `install.sh` 명령을 실행하면 적용됩니다.
+[`dist/pre-code-harness-setup.zip`](https://github.com/karsyutain-art/pre-code-harness-setup/raw/main/dist/pre-code-harness-setup.zip)을 받아 ChatGPT의 스킬 화면에서 업로드합니다. 채팅의 ChatGPT는 사용자 저장소에 직접 쓸 수 없으므로, 진단 결과로 채운 **적용용 파일 묶음(zip)**을 만들어 줍니다. 저장소에서 안내된 `install.sh` 명령을 실행하면 적용됩니다.
 
 ## 사용
 
